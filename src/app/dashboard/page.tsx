@@ -20,13 +20,18 @@ export default async function DashboardPage() {
       </div>
 
       <div className="mt-8 rounded-lg border border-zinc-800 bg-zinc-900 p-6">
-        <h2 className="text-sm font-medium text-zinc-300 mb-2">Getting started (solo)</h2>
+        <h2 className="text-sm font-medium text-zinc-300 mb-2">Phase 1 capstone — in progress</h2>
+        <p className="text-sm text-zinc-400 mb-3">
+          Log analysis tool for solo sysadmins and small IT teams: ingests logs from Linux,
+          Windows, PRTG, and generic sources, clusters semantically-related events using
+          embeddings, and generates plain-English summaries with an LLM.
+        </p>
         <ol className="space-y-2 text-sm text-zinc-400 list-decimal list-inside">
-          <li>Create a solo Supabase project (separate from the team&rsquo;s) and apply the migration in <code className="text-zinc-300">supabase/migrations/</code></li>
-          <li>Copy <code className="text-zinc-300">.env.example</code> → <code className="text-zinc-300">.env.local</code> and fill in your Supabase keys</li>
-          <li>Hit <code className="text-zinc-300">/api/health</code> to confirm the deployed commit SHA + Supabase reachability</li>
-          <li>Sign in above to confirm auth works end-to-end</li>
-          <li>Task 2: run <code className="text-zinc-300">npx tsx scripts/seed-pipeline.ts</code> to validate the AI pipeline</li>
+          <li>Task 1 — Foundation: auth, scaffold, deploy chain end-to-end (done)</li>
+          <li>Task 2 — AI pipeline: embeddings → cosine clustering → LLM summaries</li>
+          <li>Task 3 — Core UI: log viewer, cluster view, timeline graph</li>
+          <li>Task 4 — Admin features, Alarm Waitlist, PRTG parser</li>
+          <li>Task 5 — Polish, CI, staging deploy review</li>
         </ol>
       </div>
     </div>
