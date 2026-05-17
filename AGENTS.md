@@ -67,7 +67,7 @@ Hard rules for any AI agent working in this repo. Read at session start. Overrid
 - user-charles owns the Vercel project. Teammates do not have Vercel dashboard access — Hobby free tier does not support team membership. Teammates push to GitHub; Vercel auto-deploys from there. Environment variables are managed by user-charles in the Vercel dashboard.
 
 **Vercel region alignment:**
-- `vercel.json` pins serverless functions to **`bom1` (Mumbai / `ap-south-1`) — this is fixed, not a recommendation.** user-zahid must provision the Supabase project in `ap-south-1` (Mumbai) to match. Empirically validated ~10x warm-path latency improvement vs mismatched regions (200ms → 16ms warm). Do not change `vercel.json` without also moving the Supabase project to the new region.
+- Supabase region: Mumbai (`ap-south-1`) — **strongly recommended**. The team's Vercel function region is pinned to `bom1` (Mumbai) in `vercel.json` to match the verified solo reference chain (`bom1` Vercel ↔ `ap-south-1` Supabase = 19ms warm). The team Supabase project lives in user-zahid's Supabase account; region selection is ultimately his call as the account owner. The recommendation is conveyed to zahid via user-charles's team-relay packet with the latency rationale. If zahid picks a different region, update `vercel.json` post-Supabase-setup to match.
 
 **Supabase Storage:**
 - Maximum file size per upload: **50 MB** (Supabase free tier hard limit). Validate this in the upload UI and guide users to compress large logs (`.gz`) before uploading.
