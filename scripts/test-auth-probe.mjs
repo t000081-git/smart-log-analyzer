@@ -1,14 +1,15 @@
 // scripts/test-auth-probe.mjs
 //
-// Solo project auth + route probe. Creates a test user via Supabase Admin
+// Auth + route probe. Creates a test user via Supabase Admin
 // API, signs in via @supabase/ssr (in-memory cookie store), probes each
 // route under valid auth cookies, then deletes the test user.
 //
 // Why this exists: a single-shot end-to-end check of the Supabase Auth
-// chain + Next.js route resolution. Originally written to diagnose the
-// `Database error saving new user` signup failure (#team-handle-new-user-
-// search-path-bug) on 2026-05-17; promoted to tracked because the shape
-// of "signup or routing broke — narrow the cause in <60s" recurs.
+// chain + Next.js route resolution. Originally written to diagnose a
+// `Database error saving new user` signup failure (root cause: missing
+// SET search_path on the handle_new_user trigger function); kept around
+// because the shape of "signup or routing broke — narrow the cause in
+// <60s" recurs.
 //
 // Use when:
 //   - Signup/sign-in fails and you need to localise the cause (DB trigger,

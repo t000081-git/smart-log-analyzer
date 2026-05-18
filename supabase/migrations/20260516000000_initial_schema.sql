@@ -1,16 +1,5 @@
 -- smart-log-analyzer: initial schema
--- PCP v04.00 bootstrap migration — 2026-05-16
---
--- Lineage: mirrors team migration at
--- ~/Projects/smart-log-analyzer/supabase/migrations/20260515000000_initial_schema.sql
--- WITH ONE FIX: team version has a forward-reference bug — it issues
--- `CREATE INDEX log_cluster_members_event_idx ON log_cluster_members(...)`
--- BEFORE the `log_cluster_members` table itself is created, which fails
--- with `ERROR: relation "log_cluster_members" does not exist`. This solo
--- version moves that CREATE INDEX after the CREATE TABLE.
---
--- Cross-project signal logged in CAVEATS slug:
---   #team-migration-forward-ref-bug (2026-05-16, agent: claude-opus-4-7-1m).
+-- 2026-05-16
 --
 -- Day-1 success criteria:
 --   1. User can sign in (auth + profiles trigger)
@@ -18,9 +7,12 @@
 --   3. log_events ready to receive events (append-only, hierarchy_level)
 --
 -- Append-only invariant: log_events has NO UPDATE RLS policy.
--- Corrections are new rows with supersedes_id set — same constraint
--- as PCP CAVEATS append-only / forward-only rule (structural, not discipline).
--- Soft-deletes go to log_event_deletions — never UPDATE log_events.
+-- Corrections are new rows with supersedes_id set. Soft-deletes go to
+-- log_event_deletions — never UPDATE log_events.
+--
+-- Ordering note: CREATE INDEX statements appear after their target table
+-- so the migration replays cleanly against an empty database without a
+-- "relation does not exist" forward-reference error.
 --
 -- hierarchy_level: 0 = raw server logs; 1 = first-level analyzer export;
 --                  2 = second-level, etc. (meta-log hierarchy).
