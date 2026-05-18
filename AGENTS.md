@@ -54,6 +54,29 @@ Hard rules for any AI agent working in this repo. Read at session start. Overrid
 
 ---
 
+## Current sprint — Mon 2026-05-18 to Wed 2026-05-20
+
+Ship target: Thursday 2026-05-21.
+
+Surface ownership (touch your own folders; PR everything else; ask before crossing):
+
+| Person | Owns | Primary task |
+|---|---|---|
+| user-charles | `src/middleware.ts` · auth flow · RBAC + RLS policies · merge gate | Task 4 — role-based access (viewer / admin / root): `user_roles` + `user_permissions` schema enforcement; admin role-grant UI |
+| user-zahid | `supabase/migrations/**` · `scripts/seed-pipeline.ts` · Supabase Edge Function deployment | Task 2 — AI pipeline: seed pipeline (embeddings → clustering → summaries) running locally; then deploy as a Supabase Edge Function so production calls do not hit Vercel Hobby's 10-second timeout |
+| user-mohamad | `src/app/dashboard/clusters/**` · `src/app/dashboard/logs/**` · sidebar nav | Task 3 — cluster list page, cluster detail page, logs viewer |
+| user-mufaddal | `src/app/dashboard/timeline/**` · `src/lib/ingestion/parsers/**` · `src/app/dashboard/alarms/**` | Task 3 timeline SVG; Task 4 PRTG parser; Wed: Alarm Waitlist page (most demoable surface) |
+
+Working agreements for the sprint:
+1. Feature branch off `staging`; PR back to `staging`; user-charles merges `staging → main`.
+2. Run `/api/health` after every Supabase or env-var change. If it returns non-200, do not push.
+3. Run `node --env-file=.env.local scripts/test-auth-probe.mjs` before opening a PR that touches auth or routes.
+4. Before any UI work: confirm the data shapes you consume from `src/types/database.ts` and `src/lib/ingestion/normalizer.ts` rather than inventing new ones.
+5. Browser smoke before claiming done: open the page you changed in a browser under valid auth and click through the golden path. `npm run build` passing is not the same as the feature working.
+6. Async daily check-in in the team WhatsApp group: see template in the pinned message.
+
+---
+
 ## Infrastructure rules (free-tier stack — all teammates must respect)
 
 **Repository:**
