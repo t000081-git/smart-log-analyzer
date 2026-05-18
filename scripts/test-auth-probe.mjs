@@ -10,7 +10,6 @@
 // SET search_path on the handle_new_user trigger function); kept around
 // because the shape of "signup or routing broke — narrow the cause in
 // <60s" recurs.
-//
 // Use when:
 //   - Signup/sign-in fails and you need to localise the cause (DB trigger,
 //     RLS, env vars, Supabase project paused, etc.).
