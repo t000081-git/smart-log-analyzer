@@ -2,12 +2,11 @@ import { NextResponse } from 'next/server'
 
 // /api/health — deployment identity + Supabase reachability probe.
 //
-// Pre-empts the alias-drift loop (PCP-dev #verify-line-artifact-identity-extension
-// candidate, surfaced 2026-05-16 from the BookingApp debugging session): when a
-// deployed artifact and its expected source-of-truth drift apart but old
-// references still resolve, debugging the "why doesn't my fix work?" loop can
-// take hours. This endpoint surfaces the deployed commit SHA directly so a
-// caller can verify the running build matches what they pushed.
+// Pre-empts the alias-drift loop: when a deployed artifact and its expected
+// source-of-truth drift apart but old references still resolve, debugging
+// the "why doesn't my fix work?" loop can take hours. This endpoint surfaces
+// the deployed commit SHA directly so a caller can verify the running build
+// matches what they pushed.
 //
 // Verify shape: `curl https://<staging>/api/health | jq '.commit.sha'` should
 // match `git rev-parse HEAD` of the build that was deployed.

@@ -1,6 +1,6 @@
 # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 
-# PCP v04.00 — gitignored personal-state files (sensitive specifics live here)
+# Personal contributor state — gitignored, never committed
 CAVEATS.md
 BACKLOG.md
 .pcp/

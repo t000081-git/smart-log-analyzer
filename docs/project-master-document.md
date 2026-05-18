@@ -42,15 +42,13 @@
 
 **Primary surface:** Desktop. Mobile-responsive but not mobile-first.
 
-**Methodology:** PCP
-
 ---
 
 ## Part 2 — How we got here
 
 ### 2.1 Session origin
 
-Bootstrapped 2026-05-15 in a single session. Completed and prepared PCP before any project work began. PCP is user-charles's creation and personal session continuity methodology — it governs how user-charles and the chat agent maintain session continuity, capture decisions, and manage gated merges to production. Teammates are not required to follow PCP conventions.
+Bootstrapped 2026-05-15 in a single session, with the project's foundational conventions and merge-gating discipline established before any code work began.
 
 ### 2.2 PRD cleanup
 
