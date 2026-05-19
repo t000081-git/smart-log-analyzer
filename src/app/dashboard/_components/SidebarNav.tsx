@@ -7,6 +7,7 @@ const NAV_ITEMS = [
   { label: 'Dashboard',  href: '/dashboard' },
   { label: 'Logs',       href: '/dashboard/logs' },
   { label: 'Clusters',   href: '/dashboard/clusters' },
+  { label: 'Timeline',   href: '/dashboard/timeline' },
   { label: 'Alarms',     href: '/dashboard/alarms' },
   { label: 'Admin',      href: '/dashboard/admin' },
 ]
