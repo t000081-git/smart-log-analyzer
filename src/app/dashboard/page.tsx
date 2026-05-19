@@ -1,8 +1,31 @@
 import { createClient } from '@/lib/supabase/server'
 
+// Force dynamic rendering — the stat cards query Supabase at request time,
+// not at build time. Without this, Next.js can statically generate the page
+// with stale (build-time) counts.
+export const dynamic = 'force-dynamic'
+
 export default async function DashboardPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
+
+  // Stat-card counts — three independent COUNT queries in parallel.
+  // Using { count: 'exact', head: true } returns the count without
+  // fetching row data (efficient). Each query has its own error path;
+  // a missing or RLS-blocked table degrades to 0 rather than breaking
+  // the whole page.
+  const [events, clusters, alarms] = await Promise.all([
+    supabase.from('log_events').select('id', { count: 'exact', head: true }),
+    supabase.from('log_clusters').select('id', { count: 'exact', head: true }),
+    supabase
+      .from('alarms')
+      .select('id', { count: 'exact', head: true })
+      .eq('status', 'open'),
+  ])
+
+  const eventCount   = events.error   ? 0 : (events.count   ?? 0)
+  const clusterCount = clusters.error ? 0 : (clusters.count ?? 0)
+  const alarmCount   = alarms.error   ? 0 : (alarms.count   ?? 0)
 
   return (
     <div className="max-w-4xl">
@@ -14,9 +37,21 @@ export default async function DashboardPage() {
       </div>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <StatCard label="Log Events" value="—" note="Connect Supabase to populate" />
-        <StatCard label="Clusters"   value="—" note="AI pipeline — Task 2" />
-        <StatCard label="Active Alarms" value="—" note="Alarm Waitlist — Task 4" />
+        <StatCard
+          label="Log Events"
+          value={eventCount.toLocaleString()}
+          note="Total events ingested"
+        />
+        <StatCard
+          label="Clusters"
+          value={clusterCount.toLocaleString()}
+          note="AI pipeline — Task 2 (done)"
+        />
+        <StatCard
+          label="Active Alarms"
+          value={alarmCount.toLocaleString()}
+          note="Alarm Waitlist — Task 4"
+        />
       </div>
 
       <div className="mt-8 rounded-lg border border-zinc-800 bg-zinc-900 p-6">
