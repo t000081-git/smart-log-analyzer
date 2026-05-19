@@ -28,7 +28,7 @@ export default async function DashboardPage() {
         </p>
         <ol className="space-y-2 text-sm text-zinc-400 list-decimal list-inside">
           <li>Task 1 — Foundation: auth, scaffold, deploy chain end-to-end (done)</li>
-          <li>Task 2 — AI pipeline: embeddings → cosine clustering → LLM summaries</li>
+          <li>Task 2 — AI pipeline: embeddings → cosine clustering → LLM summaries (done)</li>
           <li>Task 3 — Core UI: log viewer, cluster view, timeline graph</li>
           <li>Task 4 — Admin features, Alarm Waitlist, PRTG parser</li>
           <li>Task 5 — Polish, CI, staging deploy review</li>
