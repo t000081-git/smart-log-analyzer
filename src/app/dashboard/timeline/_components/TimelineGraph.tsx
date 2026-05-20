@@ -29,6 +29,10 @@ interface Props {
   memberships: Record<string, string>
   windowHours: number
   range: RangeKey
+  // Server-stable timestamp — passed from page.tsx to avoid hydration mismatch
+  // (otherwise Date.now() drifts by ms between SSR and client, and every
+  // SVG x-coordinate diverges).
+  now: number
 }
 
 type View = 'swimlane' | 'stream' | 'scatter'
@@ -69,10 +73,11 @@ export default function TimelineGraph({
   memberships,
   windowHours,
   range,
+  now,
 }: Props) {
   const [view, setView] = useState<View>('swimlane')
 
-  const stats = useMemo(() => computeStats(events, windowHours), [events, windowHours])
+  const stats = useMemo(() => computeStats(events, windowHours, now), [events, windowHours, now])
 
   return (
     <div className="space-y-4">
@@ -92,11 +97,12 @@ export default function TimelineGraph({
             clusters={clusters}
             memberships={memberships}
             windowHours={windowHours}
+            now={now}
           />
         ) : view === 'stream' ? (
-          <StreamView events={events} windowHours={windowHours} />
+          <StreamView events={events} windowHours={windowHours} now={now} />
         ) : (
-          <ScatterView events={events} windowHours={windowHours} />
+          <ScatterView events={events} windowHours={windowHours} now={now} />
         )}
       </div>
     </div>
@@ -113,12 +119,12 @@ interface Stats {
   error: number
 }
 
-function computeStats(events: TimelineEvent[], windowHours: number): Stats {
+function computeStats(events: TimelineEvent[], windowHours: number, now: number): Stats {
   if (events.length === 0) {
     return { total: 0, peakBucketLabel: null, peakBucketCount: 0, dominant: null, dominantPct: 0, critical: 0, error: 0 }
   }
 
-  const start = Date.now() - windowHours * 3600 * 1000
+  const start = now - windowHours * 3600 * 1000
   const span = windowHours * 3600 * 1000
   const buckets = new Array<number>(BUCKET_COUNT).fill(0)
   const severityCounts: Record<LogSeverity, number> = {
@@ -313,7 +319,15 @@ function EmptyState({ windowHours }: { windowHours: number }) {
 
 const PAD = { top: 16, right: 24, bottom: 32, left: 56 }
 
-function StreamView({ events, windowHours }: { events: TimelineEvent[]; windowHours: number }) {
+function StreamView({
+  events,
+  windowHours,
+  now,
+}: {
+  events: TimelineEvent[]
+  windowHours: number
+  now: number
+}) {
   const width = 880
   const height = 280
   const plotW = width - PAD.left - PAD.right
@@ -322,8 +336,8 @@ function StreamView({ events, windowHours }: { events: TimelineEvent[]; windowHo
   const [hoverIdx, setHoverIdx] = useState<number | null>(null)
 
   const { buckets, bucketMs, start, maxStack } = useMemo(
-    () => bucketEvents(events, windowHours),
-    [events, windowHours]
+    () => bucketEvents(events, windowHours, now),
+    [events, windowHours, now]
   )
 
   const barW = plotW / BUCKET_COUNT
@@ -538,8 +552,8 @@ interface Bucket {
   counts: Record<LogSeverity, number>
 }
 
-function bucketEvents(events: TimelineEvent[], windowHours: number) {
-  const start = Date.now() - windowHours * 3600 * 1000
+function bucketEvents(events: TimelineEvent[], windowHours: number, now: number) {
+  const start = now - windowHours * 3600 * 1000
   const span = windowHours * 3600 * 1000
   const bucketMs = span / BUCKET_COUNT
   const buckets: Bucket[] = Array.from({ length: BUCKET_COUNT }, (_, i) => ({
@@ -571,7 +585,15 @@ function niceCeil(n: number): number {
   return 10 * mag
 }
 
-function ScatterView({ events, windowHours }: { events: TimelineEvent[]; windowHours: number }) {
+function ScatterView({
+  events,
+  windowHours,
+  now,
+}: {
+  events: TimelineEvent[]
+  windowHours: number
+  now: number
+}) {
   const width = 880
   const height = 320
   const plotW = width - PAD.left - PAD.right
@@ -579,7 +601,6 @@ function ScatterView({ events, windowHours }: { events: TimelineEvent[]; windowH
 
   const [hovered, setHovered] = useState<TimelineEvent | null>(null)
 
-  const now = Date.now()
   const start = now - windowHours * 3600 * 1000
 
   const points = useMemo(() => {
@@ -859,13 +880,14 @@ function SwimlaneView({
   clusters,
   memberships,
   windowHours,
+  now,
 }: {
   events: TimelineEvent[]
   clusters: TimelineCluster[]
   memberships: Record<string, string>
   windowHours: number
+  now: number
 }) {
-  const now = Date.now()
   const start = now - windowHours * 3600 * 1000
 
   const lanes = useMemo(
@@ -1249,3 +1271,4 @@ function SwimlaneTooltip({
     </div>
   )
 }
+

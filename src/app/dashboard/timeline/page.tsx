@@ -154,6 +154,7 @@ export default async function TimelinePage({
         memberships={memberships}
         windowHours={windowHours}
         range={range}
+        now={Date.now()}
       />
     </div>
   )

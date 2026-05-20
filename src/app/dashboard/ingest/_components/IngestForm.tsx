@@ -277,15 +277,14 @@ function FileInput({
           </svg>
         </span>
         <p className="mt-3 text-sm text-zinc-200">
-          {file ? file.name : 'Drop or browse · .log · .json · .syslog'}
+          {file ? file.name : 'Drop or browse · any text-based log file'}
         </p>
         <p className="mt-1 font-mono text-[10px] text-zinc-500">
-          {file ? `${(file.size / 1024).toFixed(1)} KB` : 'Max 5 MB · UTF-8'}
+          {file ? `${(file.size / 1024).toFixed(1)} KB` : 'Max 5 MB · UTF-8 · any extension'}
         </p>
         <input
           id="ingest-file"
           type="file"
-          accept=".log,.txt,.json,.syslog,.messages"
           onChange={(e) => onChange(e.target.files?.[0] ?? null)}
           className="sr-only"
         />
@@ -349,7 +348,7 @@ function filenameForConnector(c: ConnectorId): string {
 
 function ResultCard({ result }: { result: IngestResult }) {
   return (
-    <div className="overflow-hidden rounded-xl border border-emerald-500/20 bg-zinc-900">
+    <div className="relative overflow-hidden rounded-xl border border-emerald-500/20 bg-zinc-900">
       <div
         aria-hidden
         className="pointer-events-none absolute inset-0"
@@ -381,6 +380,40 @@ function ResultCard({ result }: { result: IngestResult }) {
         <Metric label="Events stored" value={result.inserted} accent="accent" />
         <Metric label="Alarms raised" value={result.alarms} accent={result.alarms > 0 ? 'rose' : 'zinc'} />
         <Metric label="Parse errors" value={result.parseErrors} accent={result.parseErrors > 0 ? 'amber' : 'zinc'} />
+      </div>
+      {result.shifted && <ShiftNotice shifted={result.shifted} />}
+    </div>
+  )
+}
+
+function ShiftNotice({
+  shifted,
+}: {
+  shifted: NonNullable<IngestResult['shifted']>
+}) {
+  const absDays = Math.round(Math.abs(shifted.appliedMs) / (24 * 3600 * 1000))
+  const direction = shifted.appliedMs > 0 ? 'forward' : 'back'
+  return (
+    <div className="relative border-t border-amber-500/15 bg-amber-500/[0.04] px-5 py-3">
+      <div className="flex items-start gap-2.5">
+        <svg viewBox="0 0 24 24" className="mt-0.5 h-4 w-4 shrink-0 text-amber-300" fill="none" stroke="currentColor" strokeWidth={1.8}>
+          <circle cx="12" cy="12" r="9" />
+          <path d="M12 7v5l3 2" strokeLinecap="round" />
+        </svg>
+        <div className="min-w-0 flex-1">
+          <p className="text-xs font-medium text-amber-200">
+            Timestamps shifted {direction} by {absDays}d so events end at now
+          </p>
+          <p className="mt-0.5 font-mono text-[10px] text-amber-300/70">
+            original range:{' '}
+            {new Date(shifted.originalOldest).toLocaleString()} →{' '}
+            {new Date(shifted.originalNewest).toLocaleString()}
+          </p>
+          <p className="mt-1 text-[11px] text-zinc-400">
+            Intra-event spacing preserved · originals stored on each row&apos;s
+            <code className="ml-1 font-mono text-zinc-500">metadata.original_timestamp</code>
+          </p>
+        </div>
       </div>
     </div>
   )

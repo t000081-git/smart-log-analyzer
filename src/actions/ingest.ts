@@ -7,12 +7,22 @@ import { evaluateRules } from '@/lib/rules'
 const MAX_BYTES = 5 * 1024 * 1024 // 5 MB ingest limit (server-side enforcement)
 const BATCH_SIZE = 500
 
+// If the newest parsed timestamp is more than this distance from now (past
+// or future), shift the whole batch so it ends at NOW. Keeps demo / sample
+// logs (which often have year-less syslog dates) visible on the timeline.
+const SHIFT_THRESHOLD_MS = 7 * 24 * 3600 * 1000
+
 export interface IngestResult {
   ok: boolean
   inserted: number
   alarms: number
   parseErrors: number
   message?: string
+  shifted?: {
+    appliedMs: number
+    originalOldest: string
+    originalNewest: string
+  }
 }
 
 export async function ingestText(input: {
@@ -56,6 +66,63 @@ export async function ingestText(input: {
     }
   }
 
+  // Sanitize: some adapters (notably RFC 3164 syslog with locale-edge formatting)
+  // can emit Invalid Date timestamps. Calling toISOString() on those throws
+  // RangeError. Replace with current time and flag for forensics — never
+  // silently lose the row.
+  const fallbackNow = new Date()
+  let sanitized = 0
+  for (const e of events) {
+    if (!Number.isFinite(e.timestamp.getTime())) {
+      e.metadata = {
+        ...e.metadata,
+        timestamp_was_invalid: true,
+        timestamp_invalid_raw: e.raw_message ?? null,
+      }
+      e.timestamp = fallbackNow
+      sanitized += 1
+    }
+  }
+
+  // Auto-shift timestamps if the batch is far out of the recent window.
+  // Common when ingesting sample / historical logs (e.g. RFC 3164 syslog
+  // without a year stamps to the current year, which can be months in the
+  // past or future). Shift preserves intra-event spacing.
+  const now = Date.now()
+  let newest = -Infinity
+  let oldest = Infinity
+  for (const e of events) {
+    const t = e.timestamp.getTime()
+    if (t > newest) newest = t
+    if (t < oldest) oldest = t
+  }
+
+  let shifted: IngestResult['shifted']
+  if (
+    Number.isFinite(newest) &&
+    Number.isFinite(oldest) &&
+    Math.abs(now - newest) > SHIFT_THRESHOLD_MS
+  ) {
+    const appliedMs = now - newest
+    const originalOldest = new Date(oldest).toISOString()
+    const originalNewest = new Date(newest).toISOString()
+    for (const e of events) {
+      const original = e.timestamp.toISOString()
+      e.timestamp = new Date(e.timestamp.getTime() + appliedMs)
+      e.metadata = {
+        ...e.metadata,
+        original_timestamp: original,
+        timestamp_shifted_ms: appliedMs,
+      }
+    }
+    shifted = { appliedMs, originalOldest, originalNewest }
+  }
+
+  // Service-role client — bypasses RLS for INSERT. log_events has no
+  // authenticated INSERT policy by design; only the pipeline writes.
+  // SUPABASE_SERVICE_ROLE_KEY must be set in env (locally in .env.local
+  // for dev; on Vercel under Settings → Environment Variables for
+  // production — managed by user-charles per AGENTS.md).
   const svc = createServiceClient()
 
   let inserted = 0
@@ -114,5 +181,6 @@ export async function ingestText(input: {
     inserted,
     alarms: alarmsInserted,
     parseErrors: parseErrors.length,
+    shifted,
   }
 }
