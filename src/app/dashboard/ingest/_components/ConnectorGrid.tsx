@@ -49,7 +49,7 @@ export const CONNECTORS: Connector[] = [
     id: 'syslog',
     label: 'Syslog Forwarder',
     hint: 'rsyslog · UDP 514',
-    status: 'soon',
+    status: 'ready',
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.6}>
         <path d="M4 12a8 8 0 0 1 16 0" />
@@ -62,7 +62,7 @@ export const CONNECTORS: Connector[] = [
     id: 'webhook',
     label: 'REST Webhook',
     hint: 'POST /v1/ingest',
-    status: 'soon',
+    status: 'ready',
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.6}>
         <path d="M10 4a4 4 0 0 1 7.5 1.5l-3 5.5" strokeLinecap="round" />
@@ -75,7 +75,7 @@ export const CONNECTORS: Connector[] = [
     id: 's3',
     label: 'S3 Bucket',
     hint: 'Object polling · prefix scan',
-    status: 'soon',
+    status: 'ready',
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.6}>
         <ellipse cx="12" cy="6" rx="8" ry="2.5" />
@@ -87,7 +87,7 @@ export const CONNECTORS: Connector[] = [
     id: 'splunk_hec',
     label: 'Splunk HEC',
     hint: 'Token auth · /services/collector',
-    status: 'soon',
+    status: 'ready',
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.6}>
         <path d="M4 4h16v6H4z" />

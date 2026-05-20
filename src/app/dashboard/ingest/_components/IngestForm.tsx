@@ -4,6 +4,10 @@ import { useState, useTransition } from 'react'
 import Link from 'next/link'
 import { ingestText, type IngestResult } from '@/actions/ingest'
 import ConnectorGrid, { type ConnectorId } from './ConnectorGrid'
+import ConnectorInfo, {
+  getConnectorSourceId,
+  getConnectorPlaceholder,
+} from './ConnectorInfo'
 import PipelineRibbon from './PipelineRibbon'
 import LivePreview from './LivePreview'
 
@@ -53,7 +57,32 @@ export default function IngestForm() {
   function handlePaste(value: string) {
     setText(value)
     setContent(value)
-    setFilename('paste.log')
+    setFilename(filenameForConnector(connector))
+    setError(null)
+    setResult(null)
+    setPipelineState('idle')
+  }
+
+  function handleConnectorSelect(next: ConnectorId) {
+    setConnector(next)
+    setError(null)
+    setResult(null)
+    setPipelineState('idle')
+    if (next !== 'file') {
+      const seeded = getConnectorSourceId(next)
+      if (seeded && !sourceId) setSourceId(seeded)
+    }
+    if (next === 'file') {
+      setText('')
+      setContent('')
+    }
+  }
+
+  function loadSample(sample: string, defaultSourceId: string) {
+    setText(sample)
+    setContent(sample)
+    setFilename(filenameForConnector(connector))
+    if (!sourceId) setSourceId(defaultSourceId)
     setError(null)
     setResult(null)
     setPipelineState('idle')
@@ -74,17 +103,18 @@ export default function IngestForm() {
     setError(null)
     setResult(null)
 
-    if (connector === 'file' && !file) {
-      setError('Choose a file first.')
-      return
-    }
-    if (connector === 'paste') {
+    if (connector === 'file') {
+      if (!file) {
+        setError('Choose a file first.')
+        return
+      }
+    } else {
       if (!text.trim()) {
-        setError('Paste some log content first.')
+        setError('Paste a payload first — or click Load sample.')
         return
       }
       if (new Blob([text]).size > PASTE_MAX) {
-        setError('Pasted content exceeds 1 MB. Use the file connector instead.')
+        setError(`Payload exceeds ${PASTE_MAX / 1024 / 1024} MB. Use the File connector for larger files.`)
         return
       }
     }
@@ -92,7 +122,7 @@ export default function IngestForm() {
     startTransition(async () => {
       setPipelineState('parsing')
       const payload = connector === 'file' ? content : text
-      const fname = connector === 'file' ? filename : 'paste.log'
+      const fname = connector === 'file' ? filename : filenameForConnector(connector)
       setPipelineState('inserting')
       const res = await ingestText({
         content: payload,
@@ -107,7 +137,8 @@ export default function IngestForm() {
 
   const canSubmit =
     !pending &&
-    ((connector === 'file' && Boolean(file)) || (connector === 'paste' && text.trim().length > 0))
+    ((connector === 'file' && Boolean(file)) ||
+      (connector !== 'file' && text.trim().length > 0))
 
   return (
     <div className="space-y-6">
@@ -118,16 +149,23 @@ export default function IngestForm() {
           </span>
           <h2 className="text-sm font-semibold text-zinc-100">Choose a source</h2>
         </header>
-        <ConnectorGrid active={connector} onSelect={setConnector} />
+        <ConnectorGrid active={connector} onSelect={handleConnectorSelect} />
       </section>
 
       <section className="grid grid-cols-1 gap-4 lg:grid-cols-5">
         <div className="space-y-4 lg:col-span-3">
           <div className="rounded-xl border border-zinc-800 bg-zinc-900 p-5">
+            {connector !== 'file' && connector !== 'paste' && (
+              <ConnectorInfo id={connector} onLoadSample={loadSample} />
+            )}
             {connector === 'file' ? (
               <FileInput file={file} onChange={handleFile} />
             ) : (
-              <PasteInput value={text} onChange={handlePaste} />
+              <PasteInput
+                value={text}
+                onChange={handlePaste}
+                placeholder={getConnectorPlaceholder(connector)}
+              />
             )}
 
             <div className="mt-5 border-t border-zinc-800 pt-5">
@@ -259,14 +297,18 @@ function FileInput({
 function PasteInput({
   value,
   onChange,
+  placeholder,
 }: {
   value: string
   onChange: (v: string) => void
+  placeholder?: string
 }) {
+  const fallback =
+    '2026-05-20T10:00:00Z ERROR failed login for user admin\n2026-05-20T10:01:00Z WARN  disk io slow sda1\n{"ts":"2026-05-20T10:02:00Z","level":"critical","msg":"raid degraded"}'
   return (
     <div>
       <label className="block text-xs font-medium uppercase tracking-wider text-zinc-500">
-        Paste log payload
+        Payload buffer
       </label>
       <div className="mt-2 rounded-lg border border-zinc-800 bg-zinc-950 focus-within:border-[var(--app-accent)]">
         <div className="flex items-center gap-1.5 border-b border-zinc-800 px-3 py-1.5">
@@ -280,12 +322,29 @@ function PasteInput({
           onChange={(e) => onChange(e.target.value)}
           rows={11}
           className="w-full resize-y bg-transparent px-3 py-2 font-mono text-xs text-zinc-200 placeholder:text-zinc-600 focus:outline-none"
-          placeholder={'2026-05-20T10:00:00Z ERROR failed login for user admin\n2026-05-20T10:01:00Z WARN  disk io slow sda1\n{"ts":"2026-05-20T10:02:00Z","level":"critical","msg":"raid degraded"}'}
+          placeholder={placeholder ?? fallback}
         />
       </div>
       <p className="mt-2 font-mono text-[10px] text-zinc-500">Max 1 MB · ISO 8601, JSON-lines, or syslog</p>
     </div>
   )
+}
+
+function filenameForConnector(c: ConnectorId): string {
+  switch (c) {
+    case 'syslog':
+      return 'syslog-forwarder.syslog'
+    case 'webhook':
+      return 'webhook-ingress.json'
+    case 's3':
+      return 's3-archive.json'
+    case 'splunk_hec':
+      return 'hec-collector.json'
+    case 'file':
+      return 'upload.log'
+    default:
+      return 'paste.log'
+  }
 }
 
 function ResultCard({ result }: { result: IngestResult }) {
