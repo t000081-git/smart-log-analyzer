@@ -75,8 +75,8 @@ export default function AppShell({
       {/* ── Main area ─────────────────────────────────────── */}
       <div className="flex flex-1 flex-col overflow-hidden">
 
-        {/* Mobile top bar */}
-        <header className="flex items-center justify-between border-b border-white/5 bg-[#0f1124]/90 px-4 py-3 backdrop-blur-sm md:hidden">
+        {/* Mobile top bar — sticky, never scrolls */}
+        <header className="sticky top-0 z-30 flex items-center justify-between border-b border-white/5 bg-[#0f1124]/90 px-4 py-3 backdrop-blur-sm md:hidden">
           <button
             onClick={() => setDrawerOpen(o => !o)}
             className="rounded-xl p-1.5 text-slate-400 hover:bg-white/10 hover:text-white transition-colors"
