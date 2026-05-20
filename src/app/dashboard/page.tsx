@@ -30,7 +30,7 @@ export default async function DashboardPage() {
   return (
     <div className="max-w-4xl">
       <div className="mb-8">
-        <h1 className="text-2xl font-semibold text-white">Dashboard</h1>
+        <h1 className="text-3xl font-semibold tracking-tight text-gradient">Dashboard</h1>
         <p className="mt-1 text-sm text-zinc-400">
           Welcome back{user?.email ? `, ${user.email}` : ''}.
         </p>
@@ -41,52 +41,86 @@ export default async function DashboardPage() {
           label="Log Events"
           value={eventCount.toLocaleString()}
           note="Total events ingested"
+          accent="sky"
         />
         <StatCard
           label="Clusters"
           value={clusterCount.toLocaleString()}
           note="AI pipeline — Task 2 (done)"
+          accent="violet"
         />
         <StatCard
           label="Active Alarms"
           value={alarmCount.toLocaleString()}
           note="Alarm Waitlist — Task 4"
+          accent="amber"
         />
       </div>
 
-      <div className="mt-8 rounded-lg border border-zinc-800 bg-zinc-900 p-6">
-        <h2 className="text-sm font-medium text-zinc-300 mb-2">Phase 1 capstone — in progress</h2>
-        <p className="text-sm text-zinc-400 mb-3">
+      <div className="mt-8 rounded-xl border border-violet-500/15 bg-white/[0.02] p-6 ring-1 ring-violet-400/10 backdrop-blur-sm">
+        <div className="flex items-center gap-2 mb-3">
+          <span className="h-1.5 w-1.5 rounded-full bg-violet-400 shadow-[0_0_8px_rgba(167,139,250,0.8)]" />
+          <h2 className="text-sm font-semibold text-violet-200">Phase 1 capstone — in progress</h2>
+        </div>
+        <p className="text-sm text-slate-400 mb-4 leading-relaxed">
           Log analysis tool for solo sysadmins and small IT teams: ingests logs from Linux,
           Windows, PRTG, and generic sources, clusters semantically-related events using
           embeddings, and generates plain-English summaries with an LLM.
         </p>
-        <ol className="space-y-2 text-sm text-zinc-400 list-decimal list-inside">
-          <li>Task 1 — Foundation: auth, scaffold, deploy chain end-to-end (done)</li>
-          <li>Task 2 — AI pipeline: embeddings → cosine clustering → LLM summaries (done)</li>
-          <li>Task 3 — Core UI: log viewer, cluster view, timeline graph</li>
-          <li>Task 4 — Admin features, Alarm Waitlist, PRTG parser</li>
-          <li>Task 5 — Polish, CI, staging deploy review</li>
+        <ol className="space-y-2 text-sm text-slate-400 list-decimal list-inside">
+          <li><span className="text-teal-300 font-medium">Task 1</span> — Foundation: auth, scaffold, deploy chain end-to-end <span className="text-teal-400/80 text-xs">(done ✓)</span></li>
+          <li><span className="text-teal-300 font-medium">Task 2</span> — AI pipeline: embeddings → cosine clustering → LLM summaries <span className="text-teal-400/80 text-xs">(done ✓)</span></li>
+          <li><span className="text-sky-300 font-medium">Task 3</span> — Core UI: log viewer, cluster view, timeline graph</li>
+          <li><span className="text-amber-300 font-medium">Task 4</span> — Admin features, Alarm Waitlist, PRTG parser</li>
+          <li><span className="text-slate-400 font-medium">Task 5</span> — Polish, CI, staging deploy review</li>
         </ol>
       </div>
     </div>
   )
 }
 
+type Accent = 'sky' | 'violet' | 'amber' | 'emerald' | 'rose'
+
+const ACCENT_STYLES: Record<Accent, {
+  border: string; ring: string; dot: string; label: string
+  radial: string; valueCls: string
+}> = {
+  sky:     { border: 'border-sky-500/25',     ring: 'ring-sky-400/20',     dot: 'bg-sky-300',     label: 'text-sky-300',     radial: 'rgba(125,211,252,0.12)', valueCls: 'text-sky-50'     },
+  violet:  { border: 'border-violet-500/25',  ring: 'ring-violet-400/20',  dot: 'bg-violet-300',  label: 'text-violet-300',  radial: 'rgba(196,181,253,0.12)', valueCls: 'text-violet-50'  },
+  amber:   { border: 'border-amber-500/25',   ring: 'ring-amber-400/20',   dot: 'bg-amber-300',   label: 'text-amber-300',   radial: 'rgba(253,230,138,0.12)', valueCls: 'text-amber-50'   },
+  emerald: { border: 'border-emerald-500/25', ring: 'ring-emerald-400/20', dot: 'bg-emerald-300', label: 'text-emerald-300', radial: 'rgba(134,239,172,0.12)', valueCls: 'text-emerald-50' },
+  rose:    { border: 'border-rose-500/25',    ring: 'ring-rose-400/20',    dot: 'bg-rose-300',    label: 'text-rose-300',    radial: 'rgba(253,164,175,0.12)', valueCls: 'text-rose-50'    },
+}
+
 function StatCard({
   label,
   value,
   note,
+  accent = 'sky',
 }: {
   label: string
   value: string
   note: string
+  accent?: Accent
 }) {
+  const a = ACCENT_STYLES[accent]
   return (
-    <div className="rounded-lg border border-zinc-800 bg-zinc-900 p-5">
-      <p className="text-xs font-medium text-zinc-500 uppercase tracking-wide">{label}</p>
-      <p className="mt-2 text-3xl font-semibold text-white">{value}</p>
-      <p className="mt-1 text-xs text-zinc-500">{note}</p>
+    <div
+      className={`card-lift relative overflow-hidden rounded-xl border ${a.border} bg-white/[0.03] p-5 ring-1 ${a.ring} backdrop-blur-sm`}
+    >
+      {/* Radial glow */}
+      <div
+        className="pointer-events-none absolute inset-0 rounded-xl"
+        style={{ background: `radial-gradient(ellipse at 20% 20%, ${a.radial}, transparent 65%)` }}
+      />
+      <div className="relative">
+        <div className="flex items-center gap-2">
+          <span className={`inline-block h-2 w-2 rounded-full ${a.dot} shadow-[0_0_10px_currentColor]`} />
+          <p className={`text-xs font-semibold uppercase tracking-widest ${a.label}`}>{label}</p>
+        </div>
+        <p className={`mt-3 text-4xl font-bold ${a.valueCls} tabular-nums`}>{value}</p>
+        <p className="mt-1.5 text-xs text-slate-500">{note}</p>
+      </div>
     </div>
   )
 }
