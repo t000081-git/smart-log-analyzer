@@ -32,6 +32,7 @@ export async function middleware(request: NextRequest) {
   // /api/health is exempt — it must be reachable for deploy verification
   // even when Supabase env vars are wrong.
   const isAuthRoute = request.nextUrl.pathname.startsWith('/login') ||
+                      request.nextUrl.pathname.startsWith('/signup') ||
                       request.nextUrl.pathname.startsWith('/auth')
   const isHealthCheck = request.nextUrl.pathname.startsWith('/api/health')
   if (!user && !isAuthRoute && !isHealthCheck) {

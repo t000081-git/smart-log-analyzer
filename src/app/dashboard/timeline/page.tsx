@@ -38,19 +38,27 @@ interface ClusterRow {
   severity_distribution: Record<string, number>
 }
 
+function pickString(v: string | string[] | undefined): string | undefined {
+  return Array.isArray(v) ? v[0] : v
+}
+
 export default async function TimelinePage({
   searchParams,
 }: {
-  searchParams: Promise<{ range?: string }>
+  searchParams: Promise<Record<string, string | string[] | undefined>>
 }) {
   const params = await searchParams
+
+  const rangeParam = pickString(params.range)
   const range: RangeKey = (
-    ['1h', '6h', '24h', '7d'].includes(params.range ?? '')
-      ? params.range
-      : '24h'
+    ['1h', '6h', '24h', '7d'].includes(rangeParam ?? '') ? rangeParam : '24h'
   ) as RangeKey
   const windowHours = RANGES[range]
   const since = new Date(Date.now() - windowHours * 3600 * 1000).toISOString()
+
+  // Preserved from staging — URL contract for deep-linking to a specific
+  // event/cluster. Visual highlight inside TimelineGraph is a follow-up.
+  const highlightId = pickString(params.highlight)
 
   const supabase = await createClient()
 
@@ -119,6 +127,9 @@ export default async function TimelinePage({
           </h1>
           <p className="mt-1 text-sm text-zinc-400">
             Stream of events with severity composition over time.
+            {highlightId && (
+              <span className="ml-2 font-mono text-xs text-zinc-500">· highlight: {highlightId.slice(0, 8)}</span>
+            )}
           </p>
         </div>
 
@@ -130,6 +141,12 @@ export default async function TimelinePage({
           <span className="font-mono text-xs text-sky-300">live · {range}</span>
         </div>
       </div>
+
+      {eventsRes.error && (
+        <div className="mb-4 rounded-md border border-rose-900/50 bg-rose-950/40 p-4 text-sm text-rose-300">
+          Failed to load events: {eventsRes.error.message}
+        </div>
+      )}
 
       <TimelineGraph
         events={events}
