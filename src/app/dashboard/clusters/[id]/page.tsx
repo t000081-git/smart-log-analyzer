@@ -47,7 +47,7 @@ export default async function ClusterDetailPage({
   const latestSummary = summaries?.[0] ?? null
 
   return (
-    <div className="flex flex-col gap-6 max-w-4xl">
+    <div className="flex flex-col gap-6">
       {/* Header */}
       <div>
         <Link href="/dashboard/clusters" className="text-xs text-zinc-500 hover:text-zinc-300">← Clusters</Link>
