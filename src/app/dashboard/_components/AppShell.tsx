@@ -70,13 +70,6 @@ export default function AppShell({
         ].join(' ')}
       >
         <SidebarNav email={email} openAlarms={openAlarms} onSignOut={onSignOut} />
-        {/* Close button */}
-        <button
-          onClick={() => setDrawerOpen(false)}
-          className="absolute right-0 top-4 translate-x-full rounded-r-xl bg-[#0f1124] border border-l-0 border-white/5 p-2 text-slate-400 hover:text-white transition-colors"
-        >
-          <X size={16} />
-        </button>
       </div>
 
       {/* ── Main area ─────────────────────────────────────── */}
@@ -85,11 +78,11 @@ export default function AppShell({
         {/* Mobile top bar */}
         <header className="flex items-center justify-between border-b border-white/5 bg-[#0f1124]/90 px-4 py-3 backdrop-blur-sm md:hidden">
           <button
-            onClick={() => setDrawerOpen(true)}
+            onClick={() => setDrawerOpen(o => !o)}
             className="rounded-xl p-1.5 text-slate-400 hover:bg-white/10 hover:text-white transition-colors"
-            aria-label="Open menu"
+            aria-label={drawerOpen ? 'Close menu' : 'Open menu'}
           >
-            <Menu size={20} />
+            {drawerOpen ? <X size={20} /> : <Menu size={20} />}
           </button>
 
           <div className="flex items-center gap-1.5">
