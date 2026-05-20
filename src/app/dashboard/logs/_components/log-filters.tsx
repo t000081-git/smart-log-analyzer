@@ -47,7 +47,7 @@ export function LogFilters({ severity, sourceType, range, search, sources }: Pro
   }
 
   return (
-    <div className="flex flex-wrap items-center gap-3 rounded-xl border border-white/5 bg-white/[0.03] px-4 py-3 backdrop-blur-sm">
+    <div className="flex flex-col gap-3 rounded-xl border border-white/5 bg-white/[0.03] px-4 py-3 backdrop-blur-sm sm:flex-row sm:flex-wrap sm:items-center">
 
       {/* Severity toggles */}
       <div className="flex items-center gap-1.5">
@@ -110,13 +110,13 @@ export function LogFilters({ severity, sourceType, range, search, sources }: Pro
           const q = (e.currentTarget.elements.namedItem('q') as HTMLInputElement).value
           push({ search: q, page: '0' })
         }}
-        className="ml-auto flex items-center gap-2"
+        className="flex w-full items-center gap-2 sm:ml-auto sm:w-auto"
       >
         <input
           name="q"
           defaultValue={search}
           placeholder="Search messages…"
-          className="w-52 rounded-xl border border-white/10 bg-white/5 px-3 py-1.5 text-xs text-slate-200 placeholder-slate-600 focus:outline-none focus:ring-1 focus:ring-sky-400/50 focus:border-sky-500/40 transition-all"
+          className="w-full sm:w-52 rounded-xl border border-white/10 bg-white/5 px-3 py-1.5 text-xs text-slate-200 placeholder-slate-600 focus:outline-none focus:ring-1 focus:ring-sky-400/50 focus:border-sky-500/40 transition-all"
         />
         <button
           type="submit"

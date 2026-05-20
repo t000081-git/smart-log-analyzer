@@ -160,9 +160,9 @@ export function LogTable({ rows, page, hasNext, filterParams }: Props) {
 
       {/* Detail dialog */}
       {detail && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm" onClick={() => setDetail(null)}>
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 backdrop-blur-sm sm:items-center sm:p-4" onClick={() => setDetail(null)}>
           <div
-            className="animate-slide-up w-full max-w-2xl rounded-2xl border border-white/10 bg-[#0f1124] p-6 shadow-2xl"
+            className="animate-slide-up w-full max-w-2xl rounded-t-2xl sm:rounded-2xl border border-white/10 bg-[#0f1124] p-4 sm:p-6 shadow-2xl max-h-[90vh] overflow-y-auto"
             onClick={e => e.stopPropagation()}
           >
             <div className="mb-4 flex items-start justify-between gap-4">

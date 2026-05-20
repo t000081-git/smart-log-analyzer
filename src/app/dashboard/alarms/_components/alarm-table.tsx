@@ -51,9 +51,9 @@ function ClearDialog({ alarmId, onClose }: { alarmId: string; onClose: () => voi
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm" onClick={onClose}>
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 backdrop-blur-sm sm:items-center sm:p-4" onClick={onClose}>
       <div
-        className="animate-slide-up w-full max-w-md rounded-2xl border border-white/10 bg-[#0f1124] p-6 shadow-2xl"
+        className="animate-slide-up w-full max-w-md rounded-t-2xl sm:rounded-2xl border border-white/10 bg-[#0f1124] p-4 sm:p-6 shadow-2xl"
         onClick={e => e.stopPropagation()}
       >
         <h2 className="mb-1 text-sm font-semibold text-slate-100">Clear alarm</h2>
@@ -110,7 +110,7 @@ export function AlarmTable({ rows, canClear }: Props) {
     <div className="flex flex-col gap-4">
 
       {/* Filters */}
-      <div className="flex flex-wrap items-center gap-3 rounded-xl border border-white/5 bg-white/[0.03] px-4 py-3 backdrop-blur-sm">
+      <div className="flex flex-col gap-3 rounded-xl border border-white/5 bg-white/[0.03] px-4 py-3 backdrop-blur-sm sm:flex-row sm:flex-wrap sm:items-center">
         <span className="text-xs font-medium text-slate-500">Status</span>
         {(['all', 'open', 'cleared'] as const).map(s => (
           <button
