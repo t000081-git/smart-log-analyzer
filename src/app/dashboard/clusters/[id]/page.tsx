@@ -1,30 +1,17 @@
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
+import { LevelBadge } from '@/components/level-badge'
 
 export const dynamic = 'force-dynamic'
 
-type SeverityKey = 'debug' | 'info' | 'warning' | 'error' | 'critical'
-
-const SEVERITY_BADGE: Record<SeverityKey, string> = {
-  critical: 'bg-red-500/20 text-red-300 ring-red-500/30',
-  error:    'bg-orange-500/20 text-orange-300 ring-orange-500/30',
-  warning:  'bg-amber-500/20 text-amber-300 ring-amber-500/30',
-  info:     'bg-sky-500/20 text-sky-300 ring-sky-500/30',
-  debug:    'bg-zinc-500/20 text-zinc-300 ring-zinc-500/30',
+function fmt(ts: string | null) {
+  if (!ts) return '—'
+  return new Date(ts).toLocaleString('en-GB', { dateStyle: 'short', timeStyle: 'medium' })
 }
 
-interface MemberEvent {
-  similarity_score: number | null
-  log_events: {
-    id: string
-    timestamp: string
-    severity: SeverityKey
-    source_type: string
-    source_id: string
-    message: string
-  } | null
-}
+type Severity = 'debug' | 'info' | 'warning' | 'error' | 'critical'
+const SEV_ORDER: Severity[] = ['critical', 'error', 'warning', 'info', 'debug']
 
 export default async function ClusterDetailPage({
   params,
@@ -34,160 +21,131 @@ export default async function ClusterDetailPage({
   const { id } = await params
   const supabase = await createClient()
 
-  const { data: cluster, error: clusterErr } = await supabase
-    .from('log_clusters')
-    .select('id, label, event_count, first_seen, last_seen, severity_distribution, source_types, embedding_model_provider, embedding_model_name, pipeline_version, clustered_at')
-    .eq('id', id)
-    .maybeSingle()
+  const [{ data: cluster }, { data: summaries }, { data: members }] = await Promise.all([
+    supabase
+      .from('log_clusters')
+      .select('id, label, event_count, first_seen, last_seen, severity_distribution, source_types, embedding_model_provider, embedding_model_name, pipeline_version, clustered_at')
+      .eq('id', id)
+      .single(),
+    supabase
+      .from('cluster_summaries')
+      .select('id, summary_text, summary_model_provider, summary_model_name, period_start, period_end, generated_at')
+      .eq('cluster_id', id)
+      .order('generated_at', { ascending: false }),
+    supabase
+      .from('log_cluster_members')
+      .select('log_event_id, similarity_score, log_events(id, timestamp, severity, message, source_id, source_type, raw_message)')
+      .eq('cluster_id', id)
+      .order('similarity_score', { ascending: false })
+      .limit(100),
+  ])
 
-  if (clusterErr || !cluster) notFound()
+  if (!cluster) notFound()
 
-  const { data: summary } = await supabase
-    .from('cluster_summaries')
-    .select('summary_text, summary_model_provider, summary_model_name, pipeline_version, generated_at')
-    .eq('cluster_id', id)
-    .order('generated_at', { ascending: false })
-    .limit(1)
-    .maybeSingle()
-
-  const { data: members } = await supabase
-    .from('log_cluster_members')
-    .select('similarity_score, log_events ( id, timestamp, severity, source_type, source_id, message )')
-    .eq('cluster_id', id)
-    .order('similarity_score', { ascending: false, nullsFirst: false })
-    .limit(200)
-
-  const memberList = ((members ?? []) as unknown as MemberEvent[]).filter(
-    (m): m is MemberEvent & { log_events: NonNullable<MemberEvent['log_events']> } =>
-      m.log_events !== null
-  )
+  const dist = (cluster.severity_distribution ?? {}) as Record<string, number>
+  const total = Object.values(dist).reduce((a, b) => a + b, 0)
+  const latestSummary = summaries?.[0] ?? null
 
   return (
-    <div className="max-w-5xl">
-      <div className="mb-6">
-        <Link
-          href="/dashboard/clusters"
-          className="text-xs text-zinc-500 hover:text-zinc-300"
-        >
-          ← All clusters
-        </Link>
-      </div>
-
-      <header className="mb-6">
-        <h1 className="text-2xl font-semibold text-white">
-          {cluster.label?.trim() || 'Cluster'}
-        </h1>
-        <p className="mt-1 font-mono text-xs text-zinc-500">{cluster.id}</p>
-      </header>
-
-      <div className="mb-6 grid grid-cols-1 gap-3 sm:grid-cols-3">
-        <Stat label="Events" value={String(cluster.event_count)} />
-        <Stat
-          label="First seen"
-          value={cluster.first_seen ? formatTs(cluster.first_seen) : '—'}
-        />
-        <Stat
-          label="Last seen"
-          value={cluster.last_seen ? formatTs(cluster.last_seen) : '—'}
-        />
-      </div>
-
-      <section className="mb-6 rounded-lg border border-zinc-800 bg-zinc-900 p-5">
-        <div className="mb-3 flex items-center justify-between">
-          <h2 className="text-sm font-medium text-zinc-300">AI summary</h2>
-          {summary && (
-            <span className="text-[10px] text-zinc-500">
-              {summary.summary_model_provider}/{summary.summary_model_name} ·{' '}
-              {formatTs(summary.generated_at)}
-            </span>
-          )}
-        </div>
-        <p className="text-sm leading-relaxed text-zinc-200">
-          {summary?.summary_text ?? (
-            <span className="italic text-zinc-500">
-              No summary generated yet for this cluster.
-            </span>
-          )}
+    <div className="flex flex-col gap-6 max-w-4xl">
+      {/* Header */}
+      <div>
+        <Link href="/dashboard/clusters" className="text-xs text-zinc-500 hover:text-zinc-300">← Clusters</Link>
+        <h1 className="mt-2 text-2xl font-semibold tracking-tight">{cluster.label ?? 'Unlabelled cluster'}</h1>
+        <p className="mt-1 text-xs text-zinc-500">
+          {cluster.event_count.toLocaleString()} events · {fmt(cluster.first_seen)} → {fmt(cluster.last_seen)}
         </p>
-      </section>
+      </div>
 
-      <section className="rounded-lg border border-zinc-800 bg-zinc-900">
-        <div className="flex items-center justify-between border-b border-zinc-800 px-5 py-3">
-          <h2 className="text-sm font-medium text-zinc-300">Member events</h2>
-          <span className="text-xs text-zinc-500">
-            showing {memberList.length} of {cluster.event_count}
-          </span>
+      {/* AI Summary */}
+      {latestSummary ? (
+        <div className="rounded-xl border border-violet-500/20 bg-violet-900/10 p-5">
+          <div className="mb-3 flex items-center gap-2">
+            <span className="text-xs font-medium text-violet-300">AI Summary</span>
+            <span className="text-xs text-zinc-600">·</span>
+            <span className="text-xs text-zinc-600">{latestSummary.summary_model_provider}/{latestSummary.summary_model_name}</span>
+          </div>
+          <p className="text-sm text-zinc-200 leading-relaxed">{latestSummary.summary_text}</p>
+          <p className="mt-2 text-xs text-zinc-600">Generated {fmt(latestSummary.generated_at)}</p>
         </div>
+      ) : (
+        <div className="rounded-xl border border-zinc-800 bg-zinc-900/40 p-5">
+          <p className="text-sm text-zinc-500">No AI summary available for this cluster yet.</p>
+        </div>
+      )}
 
-        {memberList.length === 0 ? (
-          <p className="px-5 py-6 text-sm text-zinc-500">No member events found.</p>
-        ) : (
-          <ul className="divide-y divide-zinc-800">
-            {memberList.map((m) => {
-              const e = m.log_events
+      {/* Severity distribution */}
+      {total > 0 && (
+        <div className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-5">
+          <h2 className="mb-3 text-xs font-medium uppercase tracking-wide text-zinc-500">Severity Distribution</h2>
+          <div className="flex flex-wrap gap-3">
+            {SEV_ORDER.map(sev => {
+              const count = dist[sev] ?? 0
+              if (count === 0) return null
               return (
-                <li key={e.id}>
-                  <Link
-                    href={`/dashboard/timeline?highlight=${e.id}`}
-                    className="flex items-start gap-3 px-5 py-3 text-sm transition-colors hover:bg-zinc-800/50"
-                    title="Click to highlight this event on the Timeline"
-                  >
-                    <span
-                      className={`mt-0.5 inline-flex shrink-0 items-center rounded-full px-2 py-0.5 text-[10px] font-medium ring-1 ring-inset ${
-                        SEVERITY_BADGE[e.severity] ?? SEVERITY_BADGE.info
-                      }`}
-                    >
-                      {e.severity}
-                    </span>
-                    <div className="min-w-0 flex-1">
-                      <p className="text-zinc-200 break-words">{e.message}</p>
-                      <p className="mt-1 text-[11px] text-zinc-500">
-                        <span className="font-mono">{formatTs(e.timestamp)}</span>
-                        {' · '}
-                        <span>{e.source_type}</span>
-                        {' · '}
-                        <span className="font-mono">{e.source_id}</span>
-                        {m.similarity_score !== null && (
-                          <>
-                            {' · '}
-                            <span title="cosine similarity to cluster centroid">
-                              sim {m.similarity_score.toFixed(3)}
-                            </span>
-                          </>
-                        )}
-                      </p>
-                    </div>
-                    <span className="shrink-0 self-center text-[10px] text-zinc-600 group-hover:text-zinc-400">
-                      ↗ timeline
-                    </span>
-                  </Link>
-                </li>
+                <div key={sev} className="flex items-center gap-1.5">
+                  <LevelBadge level={sev} />
+                  <span className="text-sm text-zinc-300">{count.toLocaleString()}</span>
+                  <span className="text-xs text-zinc-600">({Math.round((count / total) * 100)}%)</span>
+                </div>
               )
             })}
-          </ul>
-        )}
-      </section>
+          </div>
+        </div>
+      )}
 
-      <section className="mt-6 rounded-lg border border-zinc-800 bg-zinc-900/50 p-4 text-[11px] text-zinc-500">
-        <p>
-          Embedding: <span className="font-mono text-zinc-400">{cluster.embedding_model_provider}/{cluster.embedding_model_name}</span>
-          {' · '}Pipeline: <span className="font-mono text-zinc-400">{cluster.pipeline_version}</span>
-          {' · '}Clustered: <span className="font-mono text-zinc-400">{formatTs(cluster.clustered_at)}</span>
-        </p>
-      </section>
+      {/* Member events */}
+      <div>
+        <h2 className="mb-3 text-sm font-medium text-zinc-300">Member Events <span className="text-zinc-600">(top 100 by similarity)</span></h2>
+        <div className="overflow-x-auto rounded-xl border border-zinc-800">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-zinc-800 bg-zinc-900">
+                <th className="px-3 py-2 text-left text-xs font-medium uppercase tracking-wide text-zinc-500">Timestamp</th>
+                <th className="px-3 py-2 text-left text-xs font-medium uppercase tracking-wide text-zinc-500">Level</th>
+                <th className="px-3 py-2 text-left text-xs font-medium uppercase tracking-wide text-zinc-500">Source</th>
+                <th className="px-3 py-2 text-left text-xs font-medium uppercase tracking-wide text-zinc-500">Message</th>
+                <th className="px-3 py-2 text-right text-xs font-medium uppercase tracking-wide text-zinc-500">Similarity</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-zinc-800/50">
+              {(!members || members.length === 0) ? (
+                <tr><td colSpan={5} className="py-8 text-center text-sm text-zinc-500">No member events found</td></tr>
+              ) : (
+                members.map(m => {
+                  const ev = m.log_events as unknown as {
+                    id: string; timestamp: string | null; severity: string;
+                    message: string; source_id: string; source_type: string
+                  } | null
+                  if (!ev) return null
+                  return (
+                    <tr key={m.log_event_id} className="hover:bg-zinc-800/30 transition-colors">
+                      <td className="whitespace-nowrap px-3 py-2 font-mono text-xs text-zinc-400">{fmt(ev.timestamp)}</td>
+                      <td className="px-3 py-2"><LevelBadge level={ev.severity} /></td>
+                      <td className="px-3 py-2 text-xs text-zinc-400 max-w-[120px] truncate">{ev.source_id}</td>
+                      <td className="px-3 py-2 text-xs text-zinc-200 max-w-[360px] truncate">{ev.message}</td>
+                      <td className="px-3 py-2 text-right font-mono text-xs text-zinc-500">
+                        {m.similarity_score != null ? m.similarity_score.toFixed(3) : '—'}
+                      </td>
+                    </tr>
+                  )
+                })
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* Technical metadata */}
+      <div className="rounded-xl border border-zinc-800 bg-zinc-900/30 p-4">
+        <h2 className="mb-2 text-xs font-medium uppercase tracking-wide text-zinc-600">Pipeline Metadata</h2>
+        <div className="grid grid-cols-2 gap-2 text-xs">
+          <div><span className="text-zinc-600">Embedding model</span><p className="text-zinc-400">{cluster.embedding_model_provider}/{cluster.embedding_model_name}</p></div>
+          <div><span className="text-zinc-600">Pipeline version</span><p className="text-zinc-400">{cluster.pipeline_version}</p></div>
+          <div><span className="text-zinc-600">Clustered at</span><p className="text-zinc-400">{fmt(cluster.clustered_at)}</p></div>
+          <div><span className="text-zinc-600">Cluster ID</span><p className="font-mono text-[10px] text-zinc-600">{cluster.id}</p></div>
+        </div>
+      </div>
     </div>
   )
-}
-
-function Stat({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-lg border border-zinc-800 bg-zinc-900 p-4">
-      <p className="text-[10px] font-medium uppercase tracking-wide text-zinc-500">{label}</p>
-      <p className="mt-1 text-lg font-semibold text-white tabular-nums">{value}</p>
-    </div>
-  )
-}
-
-function formatTs(iso: string): string {
-  return new Date(iso).toISOString().replace('T', ' ').slice(0, 19) + 'Z'
 }
