@@ -5,10 +5,13 @@ import { usePathname } from 'next/navigation'
 
 const NAV_ITEMS = [
   { label: 'Dashboard',  href: '/dashboard' },
+  { label: 'Ingest',     href: '/dashboard/ingest' },
   { label: 'Logs',       href: '/dashboard/logs' },
   { label: 'Clusters',   href: '/dashboard/clusters' },
+  { label: 'Timeline',   href: '/dashboard/timeline' },
   { label: 'Alarms',     href: '/dashboard/alarms' },
   { label: 'Admin',      href: '/dashboard/admin' },
+  { label: 'Settings',   href: '/dashboard/settings' },
 ]
 
 interface Props {
