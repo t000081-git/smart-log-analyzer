@@ -9,7 +9,6 @@ import {
   Bell,
   ShieldCheck,
   BrainCircuit,
-  GitMerge,
   Activity,
   Upload,
   Settings,
@@ -17,19 +16,16 @@ import {
   Sparkles,
 } from 'lucide-react'
 
-const MY_ITEMS = [
-  { label: 'Dashboard',   href: '/dashboard',              icon: LayoutDashboard, exact: true,  color: 'text-sky-300',    glow: 'rgba(125,211,252,0.35)'    },
-  { label: 'Logs',        href: '/dashboard/logs',         icon: ScrollText,      exact: false, color: 'text-teal-300',   glow: 'rgba(94,234,212,0.35)'     },
-  { label: 'Clusters',    href: '/dashboard/clusters',     icon: Layers,          exact: false, color: 'text-violet-300', glow: 'rgba(167,139,250,0.35)'    },
-  { label: 'Alarms',      href: '/dashboard/alarms',       icon: Bell,            exact: false, color: 'text-amber-300',  glow: 'rgba(253,230,138,0.35)'    },
-  { label: 'Admin',       href: '/dashboard/admin',        icon: ShieldCheck,     exact: false, color: 'text-rose-300',   glow: 'rgba(253,164,175,0.35)'    },
-  { label: 'AI Analysis', href: '/dashboard/analysis/new', icon: BrainCircuit,    exact: false, color: 'text-pink-300',   glow: 'rgba(249,168,212,0.35)'    },
-]
-
-const MOHAMAD_ITEMS = [
-  { label: 'Timeline', href: '/dashboard/timeline', icon: Activity },
-  { label: 'Ingest',   href: '/dashboard/ingest',   icon: Upload   },
-  { label: 'Settings', href: '/dashboard/settings', icon: Settings },
+const NAV_ITEMS = [
+  { label: 'Dashboard',   href: '/dashboard',              icon: LayoutDashboard, exact: true,  color: 'text-sky-300',     glow: 'rgba(125,211,252,0.35)' },
+  { label: 'Ingest',      href: '/dashboard/ingest',       icon: Upload,          exact: false, color: 'text-emerald-300', glow: 'rgba(110,231,183,0.35)' },
+  { label: 'Logs',        href: '/dashboard/logs',         icon: ScrollText,      exact: false, color: 'text-teal-300',    glow: 'rgba(94,234,212,0.35)' },
+  { label: 'Clusters',    href: '/dashboard/clusters',     icon: Layers,          exact: false, color: 'text-violet-300',  glow: 'rgba(167,139,250,0.35)' },
+  { label: 'Timeline',    href: '/dashboard/timeline',     icon: Activity,        exact: false, color: 'text-cyan-300',    glow: 'rgba(103,232,249,0.35)' },
+  { label: 'Alarms',      href: '/dashboard/alarms',       icon: Bell,            exact: false, color: 'text-amber-300',   glow: 'rgba(253,230,138,0.35)' },
+  { label: 'AI Analysis', href: '/dashboard/analysis/new', icon: BrainCircuit,    exact: false, color: 'text-pink-300',    glow: 'rgba(249,168,212,0.35)' },
+  { label: 'Admin',       href: '/dashboard/admin',        icon: ShieldCheck,     exact: false, color: 'text-rose-300',    glow: 'rgba(253,164,175,0.35)' },
+  { label: 'Settings',    href: '/dashboard/settings',     icon: Settings,        exact: false, color: 'text-slate-300',   glow: 'rgba(203,213,225,0.35)' },
 ]
 
 interface Props {
@@ -56,7 +52,7 @@ export default function SidebarNav({ email, openAlarms, onSignOut }: Props) {
 
         {/* Main nav */}
         <nav className="space-y-0.5">
-          {MY_ITEMS.map(({ label, href, icon: Icon, exact, color, glow }) => {
+          {NAV_ITEMS.map(({ label, href, icon: Icon, exact, color, glow }) => {
             const active = exact ? pathname === href : pathname.startsWith(href)
             const isAlarms = href === '/dashboard/alarms'
 
@@ -99,31 +95,6 @@ export default function SidebarNav({ email, openAlarms, onSignOut }: Props) {
             )
           })}
         </nav>
-
-        {/* Mohamad's pending modules */}
-        <div>
-          <div className="mb-2 flex items-center gap-1.5 px-3">
-            <GitMerge size={11} className="text-pink-500/60" />
-            <span className="text-[10px] font-semibold uppercase tracking-widest text-pink-500/50">
-              Pending — Mohamad
-            </span>
-          </div>
-          <nav className="space-y-0.5">
-            {MOHAMAD_ITEMS.map(({ label, href, icon: Icon }) => (
-              <div
-                key={href}
-                className="flex cursor-not-allowed items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium text-slate-700"
-                title="Pending merge from Mohamad's branch"
-              >
-                <Icon size={15} className="text-slate-700" strokeWidth={1.75} />
-                <span>{label}</span>
-                <span className="ml-auto rounded-xl bg-pink-500/10 px-1.5 py-0.5 text-[9px] font-semibold text-pink-500/50 ring-1 ring-pink-500/20">
-                  PR
-                </span>
-              </div>
-            ))}
-          </nav>
-        </div>
       </div>
 
       {/* Footer */}

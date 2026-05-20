@@ -1,55 +1,161 @@
-import { GitMerge } from 'lucide-react'
+import { createClient } from '@/lib/supabase/server'
+import TimelineGraph, {
+  type TimelineEvent,
+  type TimelineCluster,
+  type RangeKey,
+} from './_components/TimelineGraph'
 
-export default function TimelinePage() {
-  return <PendingMergePage module="Timeline" owner="user-mohamad" branch="mohamad" />
+export const dynamic = 'force-dynamic'
+
+const MAX_EVENTS = 5000
+
+const RANGES: Record<RangeKey, number> = {
+  '1h': 1,
+  '6h': 6,
+  '24h': 24,
+  '7d': 168,
 }
 
-function PendingMergePage({ module, owner, branch }: { module: string; owner: string; branch: string }) {
+interface LogEventRow {
+  id: string
+  timestamp: string
+  severity: TimelineEvent['severity']
+  source_type: string
+  message: string
+}
+
+interface ClusterMemberRow {
+  cluster_id: string
+  log_event_id: string
+}
+
+interface ClusterRow {
+  id: string
+  label: string | null
+  event_count: number
+  first_seen: string | null
+  last_seen: string | null
+  severity_distribution: Record<string, number>
+}
+
+function pickString(v: string | string[] | undefined): string | undefined {
+  return Array.isArray(v) ? v[0] : v
+}
+
+export default async function TimelinePage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>
+}) {
+  const params = await searchParams
+
+  const rangeParam = pickString(params.range)
+  const range: RangeKey = (
+    ['1h', '6h', '24h', '7d'].includes(rangeParam ?? '') ? rangeParam : '24h'
+  ) as RangeKey
+  const windowHours = RANGES[range]
+  const since = new Date(Date.now() - windowHours * 3600 * 1000).toISOString()
+
+  // Preserved from staging — URL contract for deep-linking to a specific
+  // event/cluster. Visual highlight inside TimelineGraph is a follow-up.
+  const highlightId = pickString(params.highlight)
+
+  const supabase = await createClient()
+
+  const eventsRes = await supabase
+    .from('log_events')
+    .select('id, timestamp, severity, source_type, message')
+    .gte('timestamp', since)
+    .order('timestamp', { ascending: true })
+    .limit(MAX_EVENTS)
+
+  const events: TimelineEvent[] = (eventsRes.data ?? []).map(
+    (r: LogEventRow) => ({
+      id: r.id,
+      ts: r.timestamp,
+      severity: r.severity,
+      source_type: r.source_type,
+      message: r.message.slice(0, 240),
+    })
+  )
+
+  const eventIds = events.map((e) => e.id)
+  let memberships: Record<string, string> = {}
+  let clusters: TimelineCluster[] = []
+
+  if (eventIds.length > 0) {
+    const membersRes = await supabase
+      .from('log_cluster_members')
+      .select('cluster_id, log_event_id')
+      .in('log_event_id', eventIds)
+
+    memberships = (membersRes.data ?? []).reduce(
+      (acc: Record<string, string>, m: ClusterMemberRow) => {
+        acc[m.log_event_id] = m.cluster_id
+        return acc
+      },
+      {}
+    )
+
+    const clusterIds = Array.from(new Set(Object.values(memberships)))
+    if (clusterIds.length > 0) {
+      const clustersRes = await supabase
+        .from('log_clusters')
+        .select('id, label, event_count, first_seen, last_seen, severity_distribution')
+        .in('id', clusterIds)
+
+      clusters = (clustersRes.data ?? []).map((c: ClusterRow) => ({
+        id: c.id,
+        label: c.label ?? 'unlabeled',
+        event_count: c.event_count,
+        first_seen: c.first_seen,
+        last_seen: c.last_seen,
+        severity_distribution: c.severity_distribution ?? {},
+      }))
+    }
+  }
+
   return (
-    <div className="flex flex-col gap-6">
-      <h1 className="text-2xl font-semibold tracking-tight">{module}</h1>
-      <div className="max-w-lg rounded-xl border border-dashed border-zinc-700 bg-zinc-900/40 p-8">
-        <div className="mb-4 flex items-center gap-2">
-          <GitMerge size={18} className="text-zinc-500" />
-          <span className="text-sm font-medium text-zinc-400">Pending merge</span>
+    <div className="max-w-6xl">
+      <div className="mb-6 flex items-start justify-between gap-4">
+        <div>
+          <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-zinc-500">
+            /dashboard/timeline
+          </span>
+          <h1 className="mt-1 text-3xl font-semibold text-white tracking-tight">
+            Timeline
+          </h1>
+          <p className="mt-1 text-sm text-zinc-400">
+            Stream of events with severity composition over time.
+            {highlightId && (
+              <span className="ml-2 font-mono text-xs text-zinc-500">· highlight: {highlightId.slice(0, 8)}</span>
+            )}
+          </p>
         </div>
-        <p className="text-sm text-zinc-400 leading-relaxed">
-          The <strong className="text-zinc-200">{module}</strong> module is being built by{' '}
-          <strong className="text-zinc-200">{owner}</strong> on the{' '}
-          <code className="rounded-lg bg-zinc-800 px-1.5 py-0.5 text-xs text-zinc-300">{branch}</code>{' '}
-          branch.
-        </p>
-        <p className="mt-2 text-sm text-zinc-500">
-          Once Mohamad opens a PR to <code className="rounded-lg bg-zinc-800 px-1.5 py-0.5 text-xs text-zinc-400">staging</code>,
-          this page will be replaced by the real implementation.
-        </p>
-        <div className="mt-5 rounded-lg bg-zinc-800/60 px-4 py-3 text-xs text-zinc-500 space-y-1">
-          <p className="font-medium text-zinc-400">Expected in this module:</p>
-          {module === 'Timeline' && (
-            <ul className="mt-1 space-y-0.5 list-disc list-inside">
-              <li>Date-time scatter view (events × severity over time)</li>
-              <li>Event correlation graph (cluster-linked nodes)</li>
-              <li>SVG/Recharts hybrid rendering</li>
-            </ul>
-          )}
-          {module === 'Ingest' && (
-            <ul className="mt-1 space-y-0.5 list-disc list-inside">
-              <li>File upload (.log, .txt, .json, .csv — max 5 MB)</li>
-              <li>Paste raw text tab</li>
-              <li>Format auto-detection (plain, JSON-lines, CSV)</li>
-              <li>Progress feedback + inserted / error counts</li>
-            </ul>
-          )}
-          {module === 'Settings' && (
-            <ul className="mt-1 space-y-0.5 list-disc list-inside">
-              <li>OpenRouter API key (per user)</li>
-              <li>Preferred AI model selector</li>
-              <li>Test connection button</li>
-              <li>Profile + log sources management</li>
-            </ul>
-          )}
+
+        <div className="flex items-center gap-2 rounded-full border border-sky-500/20 bg-sky-500/5 px-3 py-1.5">
+          <span className="relative flex h-2 w-2">
+            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-sky-400 opacity-75" />
+            <span className="relative inline-flex h-2 w-2 rounded-full bg-sky-400" />
+          </span>
+          <span className="font-mono text-xs text-sky-300">live · {range}</span>
         </div>
       </div>
+
+      {eventsRes.error && (
+        <div className="mb-4 rounded-md border border-rose-900/50 bg-rose-950/40 p-4 text-sm text-rose-300">
+          Failed to load events: {eventsRes.error.message}
+        </div>
+      )}
+
+      <TimelineGraph
+        events={events}
+        clusters={clusters}
+        memberships={memberships}
+        windowHours={windowHours}
+        range={range}
+        now={Date.now()}
+      />
     </div>
   )
 }
