@@ -33,7 +33,7 @@ function AnalyzeForm() {
   }
 
   return (
-    <div className="max-w-lg rounded-xl border border-zinc-800 bg-zinc-900/50 p-8">
+    <div className="w-full max-w-lg rounded-xl border border-zinc-800 bg-zinc-900/50 p-4 sm:p-8">
       <h2 className="text-base font-semibold text-zinc-100 mb-1">Ready to analyze</h2>
       <p className="text-sm text-zinc-400 mb-6">
         {ids.length} log event{ids.length !== 1 ? 's' : ''} selected. Claude will produce a summary, threat indicators, and recommendations.
