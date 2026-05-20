@@ -17,6 +17,12 @@ export default async function DashboardLayout({
   const cookieStore = await cookies()
   const theme = getTheme(cookieStore.get(THEME_COOKIE)?.value)
 
+  // Open-alarm count for sidebar badge — degrades to 0 if table missing/RLS-blocked
+  const { count: openAlarms } = await supabase
+    .from('alarms')
+    .select('id', { count: 'exact', head: true })
+    .eq('status', 'open')
+
   async function signOut() {
     'use server'
     const supabase = await createClient()
@@ -36,7 +42,7 @@ export default async function DashboardLayout({
       }
       data-theme={theme.id}
     >
-      <SidebarNav email={user.email ?? ''} onSignOut={signOut} />
+      <SidebarNav email={user.email ?? ''} openAlarms={openAlarms ?? 0} onSignOut={signOut} />
       <main className="relative flex-1 overflow-y-auto">
         <div
           aria-hidden
